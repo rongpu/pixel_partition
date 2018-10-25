@@ -13,16 +13,14 @@ def faster_std(a):
 
 class Subsampler():
 
-    def __init__(self, x, y, ngroup, neighbors, weights=None, **kwargs):
+    def __init__(self, ra, dec, ngroup, neighbors, weights=None, **kwargs):
 
         self.mutate_rate = kwargs['mutate_rate']
         self.equality_weight = kwargs['equality_weight']
-        if 'spherical' in kwargs:
-            self.spherical = kwargs['spherical']
-        else:
-            self.spherical = True
-        self.npix = len(x)
-        self.x, self.y = x, y
+        self.npix = len(ra)
+        self.x = np.cos(dec/180.*np.pi) * np.cos(ra/180.*np.pi)
+        self.y = np.cos(dec/180.*np.pi) * np.sin(ra/180.*np.pi)
+        self.z = np.sin(dec/180.*np.pi)
         self.neighbors = neighbors
         if weights is None:
             self.weights = np.ones(self.npix)
@@ -51,13 +49,9 @@ class Subsampler():
                 k2 = label_edges[idx_grp+1]
                 members = s[k1:k2]
                 counts[idx_grp] = np.sum(self.weights[members])
-                if self.spherical:
-                    x_rescale = math.cos(np.mean(self.y[members])/180*np.pi)
-                else:
-                    x_rescale = 1.
                 # compactness score: lower the better
-                compactness += math.sqrt(x_rescale * faster_std(self.x[members])**2 \
-                    + faster_std(self.y[members])**2)
+                compactness += math.sqrt(faster_std(self.x[members])**2 \
+                    + faster_std(self.y[members])**2 + faster_std(self.z[members])**2)
             # equality score: lower the better
             equality = self.equality_weight * faster_std(counts)/(self.average_count)
 
